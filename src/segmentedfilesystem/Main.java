@@ -26,7 +26,7 @@ public class Main {
         ArrayList<byte[]> File3 = new ArrayList<byte[]>();
         
         byte[] emptyBuffer = new byte[256];
-        byte[] buffer = new byte[8000];
+        byte[] buffer = new byte[8004];
         
         //<3ofgold.more is.you em en.education (!$^.%&.##.%%) port 6014
         DatagramSocket s = new DatagramSocket(6014);
@@ -38,12 +38,12 @@ public class Main {
         
         
         
-        int counter = 0;
+        //int counter = 0;
         while(true){
         	emptyBuffer = new byte[256];
-            buffer = new byte[8000];
+            buffer = new byte[8004];
         	//System.out.println("it got here "+counter++);
-        	byte[] receiveChunk = new byte[8000];
+        	byte[] receiveChunk = new byte[8004];
         	DatagramPacket receiver = new DatagramPacket(buffer, buffer.length);
         	s.receive(receiver);
         	receiveChunk = receiver.getData();
@@ -84,13 +84,32 @@ public class Main {
 		File f = new File(FileName);
 		FileOutputStream fileOutput = new FileOutputStream(f);
 		for(int i = 1; i < fileData.size(); i++)
-			{
+		{
 				byteHolder = fileData.get(i);
+				int zCounter = 0;
 				for (int j = 4; j < byteHolder.length; j++)
 				{
-					fileOutput.write(byteHolder[j]);
+					//System.out.println(byteHolder[j]);
+					
+					if((int) byteHolder[j] != 0){
+						for (int v = 0; v < zCounter; v++){
+							System.out.println("It did a zero");
+							fileOutput.write((byte) 0);
+						}
+						zCounter = 0;
+						fileOutput.write(byteHolder[j]);
+						fileOutput.flush();
+//						System.out.println(byteHolder[j]);
+					} else {
+						zCounter++;
+					}
+						
+						
 				}
-			}
+
+		}
+
+		
     }
     
     public static void distributeData(ArrayList<byte[]> f1, ArrayList<byte[]> f2,ArrayList<byte[]> f3, byte[] b){
@@ -153,15 +172,15 @@ public class Main {
     public static void checkComplete(ArrayList<byte[]> f1, ArrayList<byte[]> f2, ArrayList<byte[]> f3){
     	if(f1.size() == file1Packets+2){
     		file1Done = true;
-    		System.out.println("File1 done");
+    		//System.out.println("File1 done");
     	}
     	if(f2.size() == file2Packets+2) {
     		file2Done = true;
-    		System.out.println("File2 done");
+    		//System.out.println("File2 done");
     	}
     	if(f3.size() == file3Packets+2){
     		file3Done = true;
-    		System.out.println("File3 done");
+    		//System.out.println("File3 done");
     	}
     }
     
@@ -169,8 +188,8 @@ public class Main {
 
     	@Override
     	public int compare(byte[] b1, byte[] b2) {
-    		int n = (b1[2]*1000)+b1[3];
-    		int m = (b2[2]*1000)+b2[3];
+    		int n = ((int)(Math.abs(b1[2])<<8)) + Math.abs(b1[3]);
+    		int m = ((int)(Math.abs(b2[2])<<8)) + Math.abs(b2[3]);
     		
     		int result = 0;
     		if (b1[0]%2 < b2[0]%2) {
