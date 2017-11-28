@@ -1,5 +1,6 @@
 package segmentedfilesystem;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -33,39 +34,32 @@ public class Main {
         DatagramPacket initialSend = new DatagramPacket(emptyBuffer, 0, address, 6014);
         s.send(initialSend);
         
-        DatagramPacket receiver = new DatagramPacket(buffer, buffer.length);
         
-        byte[] receiveChunk = new byte[8000];
         
+        
+        
+        int counter = 0;
         while(true){
+        	emptyBuffer = new byte[256];
+            buffer = new byte[8000];
+        	//System.out.println("it got here "+counter++);
+        	byte[] receiveChunk = new byte[8000];
+        	DatagramPacket receiver = new DatagramPacket(buffer, buffer.length);
         	s.receive(receiver);
         	receiveChunk = receiver.getData();
         	
         	distributeData(File1, File2, File3, receiveChunk);
         	
         	if(file1Done && file2Done && file3Done){
+        		System.out.println("then it got here");
         		Collections.sort(File1, new ByteArrayComparator());
         		Collections.sort(File2, new ByteArrayComparator());
         		Collections.sort(File3, new ByteArrayComparator());
         		
-        		int charCode;
-        		byte[] byteHolder = File1.get(0);
-        		String File1Name = "";
-        		for(int i = 2; i < byteHolder.length; i++)
-        		{
-        			charCode = byteHolder[i];
-        			File1Name += new Character((char)charCode).toString();
-        		}
+        		writeFiles(File1);
+        		writeFiles(File2);
+        		writeFiles(File3);
         		
-        		FileOutputStream fileOutput1 = new FileOutputStream(File1Name);
-        		for(int i = 1; i < File1.size(); i++)
-        			{
-        				byteHolder = File1.get(i);
-        				for (int j = 0; j < byteHolder.length; j++)
-        				{
-        					fileOutput1.write(byteHolder[j]);
-        				}
-        			}
         		break;
         	}
         	
@@ -74,36 +68,81 @@ public class Main {
         
     }
     
+    public static void writeFiles(ArrayList<byte[]> fileData) throws IOException{
+    	int charCode;
+		byte[] byteHolder = fileData.get(0);
+		String FileName = "";
+		for(int i = 2; i < byteHolder.length; i++)
+		{
+			charCode = byteHolder[i];
+			if(charCode != 0){
+				FileName += new Character((char)charCode).toString();
+			//	System.out.println(FileName);
+			}
+		}
+		
+		File f = new File(FileName);
+		FileOutputStream fileOutput = new FileOutputStream(f);
+		for(int i = 1; i < fileData.size(); i++)
+			{
+				byteHolder = fileData.get(i);
+				for (int j = 4; j < byteHolder.length; j++)
+				{
+					fileOutput.write(byteHolder[j]);
+				}
+			}
+    }
+    
     public static void distributeData(ArrayList<byte[]> f1, ArrayList<byte[]> f2,ArrayList<byte[]> f3, byte[] b){
-    	String k = Integer.toBinaryString(b[0]);
-    	byte[] holder1, holder2, holder3;
+    	//System.out.println("This is the fileID byte "+(int) b[1]);
+    	//k = Integer.toBinaryString(b[3]);
+    	int c;
+    	c=(Math.abs(b[2])<<8) + Math.abs(b[3]);
+    	//System.out.println("This is a data byte "+c);
+    	byte[] holder1 = {};
+    	byte[] holder2 = {}; 
+    	byte[] holder3 = {};
     	
-    	holder1 = f1.get(1);
-    	holder2 = f2.get(1);
-    	holder3 = f3.get(1);
+    	if(!f1.isEmpty()){
+    		holder1 = f1.get(0);
+    	}
+    	if(!f2.isEmpty()){
+    		holder2 = f2.get(0);
+    	}
+    	if(!f3.isEmpty()){
+    		holder3 = f3.get(0);
+    	}
     	
     	if(f1.isEmpty() || holder1[1] == b[1]){
     		f1.add(b);
     		if(b[0]%2 == 1){
+    			System.out.println("packet for 1");
     			//may need to convert to integer
-    			if((b[0]%100) > 9){
-    				file1Packets = (b[2]*1000)+b[3];
+    			if((b[0]%4) == 3){
+
+    				file1Packets = ((int)(Math.abs(b[2])<<8)) + Math.abs(b[3]);
+    				System.out.println("end packet for 1: "+file1Packets);
     			}
     		}
     	} else if (f2.isEmpty() || holder2[1] == b[1]){
     		f2.add(b);
     		if(b[0]%2 == 1){
+    			System.out.println("packet for 2");
     			//may need to convert to integer
-    			if((b[0]%100) > 9){
-    				file2Packets = (b[2]*1000)+b[3];
+    			if((b[0]%4) == 3){
+    				file2Packets = ((int)(Math.abs(b[2])<<8)) + Math.abs(b[3]);
+    				System.out.println("end packet for 2: "+file2Packets);
     			}
     		}
     	} else if (f3.isEmpty() || holder3[1] == b[1]){
     		f3.add(b);
     		if(b[0]%2 == 1){
+    			System.out.println("packet for 3");
     			//may need to convert to integer
-    			if((b[0]%100) > 9){
-    				file3Packets = (b[2]*1000)+b[3];
+    			if((b[0]%4) == 3){
+    				
+    				file3Packets = ((int)(Math.abs(b[2])<<8)) + Math.abs(b[3]);
+    				System.out.println("end packet for 3: "+file3Packets);
     			}
     		}
     	}
@@ -112,9 +151,18 @@ public class Main {
     }
     
     public static void checkComplete(ArrayList<byte[]> f1, ArrayList<byte[]> f2, ArrayList<byte[]> f3){
-    	if(f1.size() == file1Packets) file1Done = true;
-    	if(f2.size() == file2Packets) file2Done = true;
-    	if(f3.size() == file3Packets) file3Done = true;
+    	if(f1.size() == file1Packets+2){
+    		file1Done = true;
+    		System.out.println("File1 done");
+    	}
+    	if(f2.size() == file2Packets+2) {
+    		file2Done = true;
+    		System.out.println("File2 done");
+    	}
+    	if(f3.size() == file3Packets+2){
+    		file3Done = true;
+    		System.out.println("File3 done");
+    	}
     }
     
     public static class ByteArrayComparator implements Comparator<byte[]> {
