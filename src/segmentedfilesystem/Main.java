@@ -3,6 +3,7 @@ package segmentedfilesystem;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -76,6 +77,11 @@ public class Main {
         
     }
     
+    //converts to a byte to an unsigned int
+    public static int toUnsignedInt(byte x) { 
+    	return ((int) x) & 0xff; 
+    }
+    
     /**
      * Takes the sorted byte arrays, and writes the files
      * @param fileData
@@ -113,6 +119,7 @@ public class Main {
 		{
 				byteHolder = fileData.get(i);
 				int zCounter = 0;
+				
 				//Writes each byte of the file separately
 				//Doesn't write zeros to avoid writing extra zeros from the buffer
 				//Only writes zeroes once it reaches a non-zero value
@@ -128,7 +135,7 @@ public class Main {
 						}
 						zCounter = 0;
 						fileOutput.write(byteHolder[j]);
-						fileOutput.flush();
+						//fileOutput.flush();
 //						System.out.println(byteHolder[j]);
 					} else {
 						zCounter++;
@@ -145,8 +152,8 @@ public class Main {
     public static void distributeData(ArrayList<byte[]> f1, ArrayList<byte[]> f2,ArrayList<byte[]> f3, byte[] b){
 //    	System.out.println("This is the fileID byte "+(int) b[1]);
 //    	k = Integer.toBinaryString(b[3]);
-    	int c;
-    	c=(Math.abs(b[2])<<8) + Math.abs(b[3]);
+//    	int c;
+//    	c=(Math.abs(b[2])<<8) + Math.abs(b[3]);
 //    	System.out.println("This is a data byte "+c);
     	//Byte arrays to check the fileID byte (if the ArrayList contains a byte array)
     	byte[] holder1 = {};
@@ -172,8 +179,8 @@ public class Main {
     			//may need to convert to integer
     			if((b[0]%4) == 3){
 
-    				file1Packets = ((int)(Math.abs(b[2])<<8)) + Math.abs(b[3]);
-//    				System.out.println("end packet for 1: "+file1Packets);
+    				int n = ((Math.abs(b[2])<<8)) + toUnsignedInt(b[3]);
+    	    		file1Packets = n;
     			}
     		}
     	} else if (f2.isEmpty() || holder2[1] == b[1]){
@@ -182,8 +189,9 @@ public class Main {
 //    			System.out.println("packet for 2");
     			//may need to convert to integer
     			if((b[0]%4) == 3){
-    				file2Packets = ((int)(Math.abs(b[2])<<8)) + Math.abs(b[3]);
-//    				System.out.println("end packet for 2: "+file2Packets);
+    				
+    				int n = ((Math.abs(b[2])<<8)) + toUnsignedInt(b[3]);
+    	    		file2Packets = n;
     			}
     		}
     	} else if (f3.isEmpty() || holder3[1] == b[1]){
@@ -193,8 +201,8 @@ public class Main {
     			//may need to convert to integer
     			if((b[0]%4) == 3){
     				
-    				file3Packets = ((int)(Math.abs(b[2])<<8)) + Math.abs(b[3]);
-//    				System.out.println("end packet for 3: "+file3Packets);
+    				int n = ((Math.abs(b[2])<<8)) + toUnsignedInt(b[3]);
+    	    		file3Packets = n;
     			}
     		}
     	}
@@ -210,15 +218,15 @@ public class Main {
     public static void checkComplete(ArrayList<byte[]> f1, ArrayList<byte[]> f2, ArrayList<byte[]> f3){
     	if(f1.size() == file1Packets+2){
     		file1Done = true;
-    		//System.out.println("File1 done");
+//    		System.out.println("File1 done");
     	}
     	if(f2.size() == file2Packets+2) {
     		file2Done = true;
-    		//System.out.println("File2 done");
+//    		System.out.println("File2 done");
     	}
     	if(f3.size() == file3Packets+2){
     		file3Done = true;
-    		//System.out.println("File3 done");
+//    		System.out.println("File3 done");
     	}
     }
     
@@ -229,21 +237,18 @@ public class Main {
 
     	@Override
     	public int compare(byte[] b1, byte[] b2) {
-    		int n = ((int)(Math.abs(b1[2])<<8)) + Math.abs(b1[3]);
-    		int m = ((int)(Math.abs(b2[2])<<8)) + Math.abs(b2[3]);
+    		int n = ((Math.abs(b1[2])<<8)) + toUnsignedInt(b1[3]);
+    		int m = ((Math.abs(b2[2])<<8)) + toUnsignedInt(b2[3]);
     		
     		int result = 0;
-    		if (b1[0]%2 < b2[0]%2) {
-    			result = -1;
-    		} else if (b1[0]%2 > b2[0]%2) {
-    			result = 1;
-    		} else if (n < m) {
+    		
+    		if (n < m) {
     			result = -1;				
     		} else if (n > m) {
     			result = 1;
     		}
-    		
-    		return result;	
+
+    		return result;
     	}
     }
 
@@ -259,5 +264,4 @@ public class Main {
  * and if not a header sort by packet number
  * Once end packet is received (2nd bit in status byte == 1) we know the largest packet number 
  * that will be received for this file
- * 
  */
